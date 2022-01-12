@@ -30,7 +30,8 @@ export type Events =
     | KeyUpEvent
     | KeyDownEvent
     | MouseUpOnExistingPointEvent
-    | MouseWheelEvent;
+    | MouseWheelEvent
+    | contextMenuEvent;
     
 export type OnEvent = (event: Events, operations: Operations) => void;
 
@@ -116,6 +117,12 @@ export interface KeyDownEvent {
     type: 'key_down_event';
     currentGeometry: Array<Coordinates>;
     event: KeyboardEvent;
+}
+
+export interface contextMenuEvent {
+    type: 'context_menu_event';
+    at: Coordinates;
+    event: MouseEvent;
 }
 
 export interface Operations {
@@ -420,7 +427,7 @@ const useAnnotationEngine = ({
                         operations,
                     );
                 } 
-
+                
                 return onEvent(
                     {
                         type: 'mouse_move_event',
@@ -469,6 +476,19 @@ const useAnnotationEngine = ({
                 );
             });
 
+        const handleContextMenuKey = (event: MouseEvent) =>
+            handleEvent((canvas) => {
+                const eventCoords = canvasCoordinateOf(canvas, event);
+                    onEvent(
+                        {
+                            type: 'context_menu_event',
+                            at: eventCoords,
+                            event,
+                        },
+                        operations,
+                    );
+            });
+            
         if (currentCanvasRef) {
             const canvasRenderingContext = currentCanvasRef.getContext('2d');
 
@@ -479,6 +499,7 @@ const useAnnotationEngine = ({
                 currentCanvasRef.addEventListener('wheel', handleMouseWheel);
                 document.addEventListener('keyup', handleKeyUp);
                 document.addEventListener('keydown', handleKeyDown);
+                currentCanvasRef.addEventListener("contextmenu", handleContextMenuKey);
                 currentCanvasRef.width = currentCanvasRef.offsetWidth;
                 currentCanvasRef.height = currentCanvasRef.offsetHeight;
                 renderingContextRef.current = canvasRenderingContext;
@@ -493,6 +514,7 @@ const useAnnotationEngine = ({
                 currentCanvasRef.removeEventListener('mousedown', handleMouseDown);
                 currentCanvasRef.removeEventListener('mousemove', handleMouseMove);
                 currentCanvasRef.removeEventListener('wheel', handleMouseWheel);
+                currentCanvasRef.removeEventListener("contextmenu", handleContextMenuKey);
                 document.removeEventListener('keyup', handleKeyUp);
                 document.removeEventListener('keydown', handleKeyDown);
             }
