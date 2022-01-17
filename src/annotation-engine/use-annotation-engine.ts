@@ -121,7 +121,6 @@ export interface KeyDownEvent {
 
 export interface contextMenuEvent {
     type: 'context_menu_event';
-    at: Coordinates;
     event: MouseEvent;
 }
 
@@ -476,13 +475,11 @@ const useAnnotationEngine = ({
                 );
             });
 
-        const handleContextMenuKey = (event: MouseEvent) =>
-            handleEvent((canvas) => {
-                const eventCoords = canvasCoordinateOf(canvas, event);
+        const handleContextMenu = (event: MouseEvent) =>
+            handleEvent(() => {
                     onEvent(
                         {
                             type: 'context_menu_event',
-                            at: eventCoords,
                             event,
                         },
                         operations,
@@ -499,7 +496,7 @@ const useAnnotationEngine = ({
                 currentCanvasRef.addEventListener('wheel', handleMouseWheel);
                 document.addEventListener('keyup', handleKeyUp);
                 document.addEventListener('keydown', handleKeyDown);
-                currentCanvasRef.addEventListener("contextmenu", handleContextMenuKey);
+                currentCanvasRef.addEventListener("contextmenu", handleContextMenu);
                 currentCanvasRef.width = currentCanvasRef.offsetWidth;
                 currentCanvasRef.height = currentCanvasRef.offsetHeight;
                 renderingContextRef.current = canvasRenderingContext;
@@ -514,7 +511,7 @@ const useAnnotationEngine = ({
                 currentCanvasRef.removeEventListener('mousedown', handleMouseDown);
                 currentCanvasRef.removeEventListener('mousemove', handleMouseMove);
                 currentCanvasRef.removeEventListener('wheel', handleMouseWheel);
-                currentCanvasRef.removeEventListener("contextmenu", handleContextMenuKey);
+                currentCanvasRef.removeEventListener("contextmenu", handleContextMenu);
                 document.removeEventListener('keyup', handleKeyUp);
                 document.removeEventListener('keydown', handleKeyDown);
             }

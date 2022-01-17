@@ -3,6 +3,7 @@ import { Annotation, PartialAnnotationStyle, StyleDataById } from './models';
 import Canvas from './style/canvas';
 import Container from './style/container';
 import Image from './style/image';
+import InnerContainer from './style/inner-container';
 import useAnnotationEngine, { Handles, OnEvent } from './use-annotation-engine';
 
 export interface AnnotationEngineProps {
@@ -31,6 +32,7 @@ const AnnotationEngine: FC<AnnotationEngineProps> = forwardRef(
             styleForAnnotations,
             styleForAnnotationToEdit,
             styleForPointsToEdit,
+            children,
         },
         ref: ForwardedRef<Handles>,
     ) => {
@@ -50,6 +52,7 @@ const AnnotationEngine: FC<AnnotationEngineProps> = forwardRef(
 
         return (
             <Container className={className}>
+                {children && <InnerContainer>{children}</InnerContainer>}
                 <Image src={backgroundImagePath} />
                 {foregroundImagePath && <Image src={foregroundImagePath} />}
                 <Canvas ref={cRef} id={id} />
