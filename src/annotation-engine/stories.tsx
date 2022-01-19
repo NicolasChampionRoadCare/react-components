@@ -118,7 +118,7 @@ const useEngineStateMachine = (
     const isModeCreation = () => !isModeEdition() && numberOfPoints > 0;
     const isModeInactif = () => !isModeCreation() && !isModeEdition();
     // key codes map for shape validation (polygon and polylines)
-    const shapeFinishedOnKeyCodes = ['Space'];
+    const shapeFinishedOnKeyCodes = ['Space', 'Enter'];
     const cancelOnKeyCodes = ['Escape'];
 
     const initState = () => ({
@@ -133,6 +133,7 @@ const useEngineStateMachine = (
         // Cancel edition
         setAnnotationToEdit(undefined);
         // Cancel creation
+        setShapeType('INACTIVE');
         refAE.current?.cancelCreation();
     };
 
@@ -231,6 +232,8 @@ const useEngineStateMachine = (
         }
     }
 
+    const isLeftClick = (event: Events) => event.event.button === 0;
+    const isRightClick = (event: Events) => event.event.button === 2;
     const createNewPoint = (at: Coordinates, operations: Operations): number => operations.addPoint(at);
 
     const shapeFinished = (currentGeometry: Coordinates[]) => {
@@ -245,13 +248,23 @@ const useEngineStateMachine = (
         styleOps.setStyleExclusivelyToAnnotationId(clickStyle, id);
     };
 
-    const keyDownEvent = (event: KeyDownEvent) => {
+    const keyPreventDefault = (event: KeyDownEvent) => {
         if (event.event.code === 'Space') {
             // avoid page scrolldown on space key up
             event.event.preventDefault();
         }
     }
-
+    const keyDownEventWhileCreation = (event:KeyDownEvent , operations:Operations)=> {
+        switch(event.event.key) {
+            case "Backspace": {
+                const  lastPoint = operations.deleteLastPoint();
+                styleOps.setStyleExclusivelyToPointId(hiddenStyle, lastPoint.toString());
+                break;
+            }
+            default:
+                break;
+            }
+    }
     const keyUpEvent = (event: KeyUpEvent) => {        
         if (shapeFinishedOnKeyCodes.includes(event.event.code) && isGeometryReadyToBeManuallyCompleted(event.currentGeometry.length)) {
             shapeFinished(event.currentGeometry);
@@ -274,9 +287,10 @@ const useEngineStateMachine = (
         if (isModeInactif()) {
             switch (event.type) {
                 case 'mouse_down_on_annotation_event':
-                    setSelectedItemId(event.annotationsId[0]);
-                    styleOps.setStyleExclusivelyToAnnotationId(clickStyle, event.annotationsId[0]);
-
+                    if (isLeftClick(event)) {
+                        setSelectedItemId(event.annotationsId[0]);
+                        styleOps.setStyleExclusivelyToAnnotationId(clickStyle, event.annotationsId[0]);
+                    }
                     break;
 
                 case 'mouse_move_on_annotation_event': {
@@ -303,22 +317,30 @@ const useEngineStateMachine = (
         }
         if (isModeCreation()) {
             switch (event.type) {
-                
+                case 'context_menu_event':
+                    event.event.preventDefault();
+                    break;
                 case 'key_down_event':
-                    keyDownEvent(event);
+                    keyDownEventWhileCreation(event, operations);
+                    keyPreventDefault(event);
                     break;
                 case 'key_up_event':
                     keyUpEvent(event);
                     break;
                 case 'mouse_down_on_annotation_event':
                 case 'mouse_down_on_existing_point_event':
-                case 'mouse_down_event':
-                    if (event.currentGeometry.length === 0) {
+                case 'mouse_down_event': {
+                    if (isLeftClick(event) && event.currentGeometry.length === 0) {
                         operations.addPoint(event.at);
                         styleOps.setStyleExclusivelyToPointId(hiddenStyle, '0');
                     }
                     styleOps.removeStyleFromPointsByStyleNames(hiddenStyle.name);
+                    if (isRightClick(event)) {
+                        const lastPoint =  operations.deleteLastPoint();
+                        styleOps.setStyleExclusivelyToPointId(hiddenStyle, lastPoint.toString());
+                    }
                     break;
+                }
                 case 'mouse_move_on_existing_point_event':
                     if (isPolygonReadyToBeManuallyCompletedByClickOnFirstPoint(event.currentGeometry, event.pointIds)) {
                         styleOps.setStyleExclusivelyToPointId(highlightStyle, '0');
@@ -345,7 +367,9 @@ const useEngineStateMachine = (
                     }
                     break;
                 case 'mouse_up_event':
-                    mouseUpEvent(event, operations);
+                    if(isLeftClick(event)) {
+                        mouseUpEvent(event, operations);
+                    }
                     break;
                 case 'context_menu_event':
                         event.event.preventDefault()
@@ -357,7 +381,7 @@ const useEngineStateMachine = (
         if (isModeEdition()) {
             switch (event.type) {
                 case 'key_down_event':
-                    keyDownEvent(event);
+                    keyPreventDefault(event);
                     break;
                 case 'key_up_event':
                     keyUpEvent(event);
